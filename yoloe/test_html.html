@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Annotation Tool</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .upload-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-success {
+            background-color: #2ecc71;
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .annotation-area {
+            position: relative;
+            margin-bottom: 20px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 5px;
+            height: 500px;
+            overflow: hidden;
+            background-color: #ecf0f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        #imageCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .no-image {
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        .no-image i {
+            font-size: 50px;
+            margin-bottom: 10px;
+            color: #bdc3c7;
+        }
+
+        .controls-section {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .class-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .new-class-form {
+            display: none;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .annotations-list {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #e6f7ff;
+        }
+
+        .delete-annotation {
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .delete-annotation:hover {
+            color: #c0392b;
+        }
+
+        .delete-class {
+            color: #e74c3c;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .annotation-box {
+            position: absolute;
+            border: 2px solid #e74c3c;
+            background-color: rgba(231, 76, 60, 0.2);
+            pointer-events: none;
+        }
+
+        .annotation-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            background-color: #e74c3c;
+            color: white;
+            padding: 2px 5px;
+            font-size: 12px;
+            border-radius: 3px 3px 0 0;
+            white-space: nowrap;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 5px;
+            color: white;
+            font-size: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .coordinate-column {
+            font-family: monospace;
+        }
+
+        .classes-manager {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .classes-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .class-tag {
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .tool-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .annotation-area {
+                height: 400px;
+            }
+            
+            .controls-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-draw-polygon"></i> Image Annotation Tool</h1>
+        
+        <div class="tool-header">
+            <div class="upload-section">
+                <button class="btn" id="uploadBtn">
+                    <i class="fas fa-upload"></i> Upload Image
+                </button>
+                <input type="file" id="fileInput" accept="image/*">
+                <button class="btn btn-danger" id="clearCanvasBtn" disabled>
+                    <i class="fas fa-trash-alt"></i> Clear
+                </button>
+            </div>
+            
+            <div class="annotations-count">
+                <span id="annotationsCount">0</span> annotations
+            </div>
+        </div>
+        
+        <div class="annotation-area" id="annotationArea">
+            <div class="no-image" id="noImagePlaceholder">
+                <i class="fas fa-image"></i>
+                <p>Upload an image to start annotating</p>
+            </div>
+            <canvas id="imageCanvas"></canvas>
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="spinner"></div>
+                Loading image...
+            </div>
+        </div>
+        
+        <div class="controls-section">
+            <div class="class-controls">
+                <label for="classSelect">Class:</label>
+                <select id="classSelect">
+                    <option value="person">Person</option>
+                    <option value="car">Car</option>
+                    <option value="animal">Animal</option>
+                    <option value="object">Object</option>
+                    <option value="other">Other</option>
+                </select>
+                <input type="text" id="customClass" placeholder="Custom class" style="display: none;">
+                <button class="btn" id="toggleCustomClass">
+                    <i class="fas fa-edit"></i> Custom
+                </button>
+                <button class="btn btn-warning" id="addNewClassBtn">
+                    <i class="fas fa-plus-circle"></i> New Class
+                </button>
+                
+                <div class="new-class-form" id="newClassForm">
+                    <input type="text" id="newClassName" placeholder="Class name">
+                    <button class="btn btn-success" id="saveNewClassBtn">
+                        <i class="fas fa-save"></i> Add
+                    </button>
+                    <button class="btn btn-secondary" id="cancelNewClassBtn">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <button class="btn btn-secondary" id="deleteLastBtn" disabled>
+                    <i class="fas fa-undo"></i> Delete Last
+                </button>
+                <button class="btn btn-success" id="saveAnnotationsBtn" disabled>
+                    <i class="fas fa-save"></i> Save Annotations
+                </button>
+            </div>
+        </div>
+        
+        <div class="classes-manager">
+            <h3><i class="fas fa-tags"></i> Class Manager</h3>
+            <div class="classes-list" id="classesList">
+                <!-- Class tags will be added here -->
+            </div>
+        </div>
+        
+        <div class="download-section">
+            <button class="btn" id="downloadJsonBtn" disabled>
+                <i class="fas fa-file-code"></i> Download JSON
+            </button>
+            <button class="btn" id="downloadCsvBtn" disabled>
+                <i class="fas fa-file-csv"></i> Download CSV
+            </button>
+            <button class="btn" id="downloadImageBtn" disabled>
+                <i class="fas fa-file-image"></i> Download Annotated Image
+            </button>
+        </div>
+        
+        <div class="status-message" id="statusMessage"></div>
+        
+        <div class="annotations-list">
+            <h2><i class="fas fa-list"></i> Annotations</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Coordinates (x1, y1, x2, y2)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="annotationsTableBody">
+                    <!-- Annotations will be added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearCanvasBtn = document.getElementById('clearCanvasBtn');
+        const deleteLastBtn = document.getElementById('deleteLastBtn');
+        const saveAnnotationsBtn = document.getElementById('saveAnnotationsBtn');
+        const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadImageBtn = document.getElementById('downloadImageBtn');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const annotationArea = document.getElementById('annotationArea');
+        const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const classSelect = document.getElementById('classSelect');
+        const customClass = document.getElementById('customClass');
+        const toggleCustomClass = document.getElementById('toggleCustomClass');
+        const annotationsTableBody = document.getElementById('annotationsTableBody');
+        const annotationsCount = document.getElementById('annotationsCount');
+        const statusMessage = document.getElementById('statusMessage');
+        const addNewClassBtn = document.getElementById('addNewClassBtn');
+        const newClassForm = document.getElementById('newClassForm');
+        const newClassName = document.getElementById('newClassName');
+        const saveNewClassBtn = document.getElementById('saveNewClassBtn');
+        const cancelNewClassBtn = document.getElementById('cancelNewClassBtn');
+        const classesList = document.getElementById('classesList');
+
+        // Annotation state
+        let annotations = [];
+        let isDrawing = false;
+        let startX, startY;
+        let currentBox = null;
+        let img = null;
+        let scaleFactor = 1;
+        
+        // Classes management
+        let customClasses = JSON.parse(localStorage.getItem('customClasses')) || [];
+
+        // Initialize the classes list
+        function initializeClasses() {
+            // Load custom classes from localStorage if available
+            if (customClasses.length > 0) {
+                customClasses.forEach(className => {
+                    addClassToSelect(className);
+                    addClassToTagList(className);
+                });
+            }
+        }
+
+        // Add class to dropdown select
+        function addClassToSelect(className) {
+            if (!Array.from(classSelect.options).some(option => option.value === className)) {
+                const option = document.createElement('option');
+                option.value = className;
+                option.textContent = className;
+                classSelect.appendChild(option);
+            }
+        }
+
+        // Add class to the visual tag list
+        function addClassToTagList(className) {
+            const existingTag = Array.from(classesList.children).find(
+                tag => tag.textContent.includes(className)
+            );
+            
+            if (!existingTag) {
+                const tag = document.createElement('div');
+                tag.className = 'class-tag';
+                tag.innerHTML = `
+                    ${className}
+                    <i class="fas fa-times delete-class" data-class="${className}"></i>
+                `;
+                classesList.appendChild(tag);
+                
+                // Add event listener for delete button
+                tag.querySelector('.delete-class').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteClass(className);
+                });
+            }
+        }
+
+        // Delete a class
+        function deleteClass(className) {
+            if (confirm(`Are you sure you want to delete the class "${className}"?`)) {
+                // Remove from customClasses array
+                customClasses = customClasses.filter(c => c !== className);
+                localStorage.setItem('customClasses', JSON.stringify(customClasses));
+                
+                // Remove from select dropdown
+                const option = Array.from(classSelect.options).find(
+                    opt => opt.value === className
+                );
+                if (option) classSelect.removeChild(option);
+                
+                // Remove from tag list
+                const tagToRemove = Array.from(classesList.children).find(
+                    tag => tag.textContent.includes(className)
+                );
+                if (tagToRemove) classesList.removeChild(tagToRemove);
+                
+                // Update annotations that used this class
+                annotations = annotations.filter(ann => ann.class !== className);
+                if (annotations.length > 0) {
+                    drawImage();
+                    updateAnnotationsList();
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    updateAnnotationsList();
+                }
+                
+                showStatus(`Class "${className}" deleted`, "success");
+            }
+        }
+
+        // Event listeners
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleImageUpload);
+        clearCanvasBtn.addEventListener('click', clearCanvas);
+        deleteLastBtn.addEventListener('click', deleteLastAnnotation);
+        saveAnnotationsBtn.addEventListener('click', saveAnnotations);
+        downloadJsonBtn.addEventListener('click', downloadJson);
+        downloadCsvBtn.addEventListener('click', downloadCsv);
+        downloadImageBtn.addEventListener('click', downloadAnnotatedImage);
+        toggleCustomClass.addEventListener('click', toggleCustomClassInput);
+        addNewClassBtn.addEventListener('click', showNewClassForm);
+        saveNewClassBtn.addEventListener('click', saveNewClass);
+        cancelNewClassBtn.addEventListener('click', hideNewClassForm);
+        
+        // Canvas event listeners
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', drawBox);
+        canvas.addEventListener('mouseup', endDrawing);
+        canvas.addEventListener('mouseleave', endDrawing);
+
+        // Initialize classes on page load
+        initializeClasses();
+
+        // Show new class form
+        function showNewClassForm() {
+            newClassForm.style.display = 'flex';
+            addNewClassBtn.style.display = 'none';
+        }
+
+        // Hide new class form
+        function hideNewClassForm() {
+            newClassForm.style.display = 'none';
+            addNewClassBtn.style.display = 'inline-block';
+            newClassName.value = '';
+        }
+
+        // Save a new class
+        function saveNewClass() {
+            const className = newClassName.value.trim();
+            
+            if (!className) {
+                showStatus("Please enter a class name", "error");
+                return;
+            }
+            
+            if (className.length > 20) {
+                showStatus("Class name too long (max 20 chars)", "error");
+                return;
+            }
+            
+            // Check if class already exists
+            if (customClasses.includes(className) || 
+                Array.from(classSelect.options).some(opt => opt.value === className)) {
+                showStatus(`Class "${className}" already exists`, "error");
+                return;
+            }
+            
+            // Add to custom classes
+            customClasses.push(className);
+            localStorage.setItem('customClasses', JSON.stringify(customClasses));
+            
+            // Add to dropdown and tag list
+            addClassToSelect(className);
+            addClassToTagList(className);
+            
+            // Select the new class
+            classSelect.value = className;
+            
+            hideNewClassForm();
+            showStatus(`Class "${className}" added successfully`, "success");
+        }
+
+        // Handle image upload
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadingOverlay.style.display = 'flex';
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                img = new Image();
+                img.onload = function() {
+                    setupCanvas();
+                    drawImage();
+                    loadingOverlay.style.display = 'none';
+                    noImagePlaceholder.style.display = 'none';
+                    clearCanvasBtn.disabled = false;
+                    saveAnnotationsBtn.disabled = false;
+                    downloadJsonBtn.disabled = false;
+                    downloadCsvBtn.disabled = false;
+                    downloadImageBtn.disabled = false;
+                    
+                    // Clear previous annotations
+                    annotations = [];
+                    updateAnnotationsList();
+                };
+                img.onerror = function() {
+                    loadingOverlay.style.display = 'none';
+                    showStatus("Error loading image", "error");
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Set up canvas dimensions
+        function setupCanvas() {
+            const maxWidth = annotationArea.clientWidth - 20;
+            const maxHeight = annotationArea.clientHeight - 20;
+            
+            // Calculate scale factor to fit image in the container
+            scaleFactor = Math.min(maxWidth / img.width, maxHeight / img.height);
+            
+            canvas.width = img.width * scaleFactor;
+            canvas.height = img.height * scaleFactor;
+        }
+
+        // Draw the uploaded image on canvas
+        function drawImage() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawAllAnnotations();
+        }
+
+        // Drawing functionality
+        function startDrawing(e) {
+            if (!img) return;
+            
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+        }
+
+        function drawBox(e) {
+            if (!isDrawing || !img) return;
+            
+            // Clear canvas and redraw image and existing boxes
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawAllAnnotations();
+            
+            // Draw current box being drawn
+            const currentX = e.offsetX;
+            const currentY = e.offsetY;
+            
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                startX, 
+                startY, 
+                currentX - startX, 
+                currentY - startY
+            );
+            
+            currentBox = {
+                x1: startX,
+                y1: startY,
+                x2: currentX,
+                y2: currentY
+            };
+        }
+
+        function endDrawing() {
+            if (!isDrawing || !currentBox) return;
+            
+            isDrawing = false;
+            
+            // Get the selected class name
+            let className;
+            if (customClass.style.display !== 'none' && customClass.value.trim() !== '') {
+                className = customClass.value.trim();
+            } else {
+                className = classSelect.value;
+            }
+            
+            // Scale coordinates back to original image size
+            const originalCoords = {
+                x1: Math.round(currentBox.x1 / scaleFactor),
+                y1: Math.round(currentBox.y1 / scaleFactor),
+                x2: Math.round(currentBox.x2 / scaleFactor),
+                y2: Math.round(currentBox.y2 / scaleFactor)
+            };
+            
+            // Ensure coordinates are ordered properly (x1,y1 is top-left, x2,y2 is bottom-right)
+            const normalizedCoords = {
+                x1: Math.min(originalCoords.x1, originalCoords.x2),
+                y1: Math.min(originalCoords.y1, originalCoords.y2),
+                x2: Math.max(originalCoords.x1, originalCoords.x2),
+                y2: Math.max(originalCoords.y1, originalCoords.y2)
+            };
+            
+            // Add annotation to the list
+            const annotation = {
+                class: className,
+                coordinates: normalizedCoords,
+                scaledCoordinates: currentBox
+            };
+            
+            annotations.push(annotation);
+            updateAnnotationsList();
+            
+            currentBox = null;
+            deleteLastBtn.disabled = false;
+        }
+
+        // Draw all annotations on the canvas
+        function drawAllAnnotations() {
+            annotations.forEach((annotation, index) => {
+                const { x1, y1, x2, y2 } = annotation.scaledCoordinates;
+                
+                // Draw the box
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Draw semi-transparent fill
+                ctx.fillStyle = 'rgba(231, 76, 60, 0.2)';
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Draw class label
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = '12px Arial';
+                ctx.fillText(annotation.class, x1 + 5, y1 + 15);
+            });
+        }
+
+        // Clear the canvas and reset all state
+        function clearCanvas() {
+            if (!img) return;
+            
+            if (confirm("Are you sure you want to clear all annotations?")) {
+                annotations = [];
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                updateAnnotationsList();
+                deleteLastBtn.disabled = true;
+            }
+        }
+
+        // Delete the last added annotation
+        function deleteLastAnnotation() {
+            if (annotations.length === 0) return;
+            
+            annotations.pop();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawAllAnnotations();
+            updateAnnotationsList();
+            
+            if (annotations.length === 0) {
+                deleteLastBtn.disabled = true;
+            }
+        }
+
+        // Update the annotations list in the UI
+        function updateAnnotationsList() {
+            annotationsTableBody.innerHTML = '';
+            
+            annotations.forEach((annotation, index) => {
+                const row = document.createElement('tr');
+                
+                const classCell = document.createElement('td');
+                classCell.textContent = annotation.class;
+                
+                const coordCell = document.createElement('td');
+                coordCell.className = "coordinate-column";
+                coordCell.textContent = `${annotation.coordinates.x1}, ${annotation.coordinates.y1}, ${annotation.coordinates.x2}, ${annotation.coordinates.y2}`;
+                
+                const actionCell = document.createElement('td');
+                const deleteIcon = document.createElement('i');
+                deleteIcon.className = "fas fa-trash delete-annotation";
+                deleteIcon.title = "Delete this annotation";
+                deleteIcon.addEventListener('click', () => deleteSpecificAnnotation(index));
+                actionCell.appendChild(deleteIcon);
+                
+                row.appendChild(classCell);
+                row.appendChild(coordCell);
+                row.appendChild(actionCell);
+                
+                annotationsTableBody.appendChild(row);
+            });
+            
+            annotationsCount.textContent = annotations.length;
+        }
+
+        // Delete a specific annotation
+        function deleteSpecificAnnotation(index) {
+            annotations.splice(index, 1);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawAllAnnotations();
+            updateAnnotationsList();
+            
+            if (annotations.length === 0) {
+                deleteLastBtn.disabled = true;
+            }
+        }
+
+        // Toggle custom class input field
+        function toggleCustomClassInput() {
+            if (customClass.style.display === 'none') {
+                customClass.style.display = 'block';
+                classSelect.style.display = 'none';
+                toggleCustomClass.textContent = ' Select ';
+            } else {
+                customClass.style.display = 'none';
+                classSelect.style.display = 'inline-block';
+                toggleCustomClass.textContent = ' Custom ';
+            }
+        }
+
+        // Save annotations to browser's local storage
+        function saveAnnotations() {
+            try {
+                if (annotations.length === 0) {
+                    showStatus("No annotations to save", "error");
+                    return;
+                }
+                
+                // Create a data object with image and annotations
+                const annotationData = {
+                    image: canvas.toDataURL('image/png'),
+                    annotations: annotations,
+                    imageDimensions: {
+                        originalWidth: img.width,
+                        originalHeight: img.height,
+                        displayedWidth: canvas.width,
+                        displayedHeight: canvas.height
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Save to localStorage (or you could send to a server here)
+                localStorage.setItem('imageAnnotations', JSON.stringify(annotationData));
+                showStatus("Annotations saved successfully!", "success");
+            } catch (error) {
+                showStatus("Error saving annotations: " + error.message, "error");
+            }
+        }
+
+        // Download annotations as JSON
+        function downloadJson() {
+            if (annotations.length === 0) {
+                showStatus("No annotations to download", "error");
+                return;
+            }
+            
+            const data = {
+                imageInfo: {
+                    originalWidth: img.width,
+                    originalHeight: img.height
+                },
+                annotations: annotations.map(ann => ({
+                    class: ann.class,
+                    x1: ann.coordinates.x1,
+                    y1: ann.coordinates.y1,
+                    x2: ann.coordinates.x2,
+                    y2: ann.coordinates.y2
+                })),
+                customClasses: customClasses
+            };
+            
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'annotations.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus("JSON file downloaded", "success");
+        }
+
+        // Download annotations as CSV
+        function downloadCsv() {
+            if (annotations.length === 0) {
+                showStatus("No annotations to download", "error");
+                return;
+            }
+            
+            let csv = "Class,X1,Y1,X2,Y2\n";
+            
+            annotations.forEach(ann => {
+                csv += `"${ann.class}",${ann.coordinates.x1},${ann.coordinates.y1},${ann.coordinates.x2},${ann.coordinates.y2}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'annotations.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus("CSV file downloaded", "success");
+        }
+
+        // Download annotated image
+        function downloadAnnotatedImage() {
+            if (!img || annotations.length === 0) {
+                showStatus("No annotations to download", "error");
+                return;
+            }
+            
+            // Create a temporary canvas to draw the full resolution image with annotations
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Draw original image
+            tempCtx.drawImage(img, 0, 0);
+            
+            // Draw annotations scaled to original size
+            annotations.forEach(ann => {
+                const { x1, y1, x2, y2 } = ann.coordinates;
+                
+                // Draw box
+                tempCtx.strokeStyle = '#e74c3c';
+                tempCtx.lineWidth = 2;
+                tempCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Fill semi-transparent
+                tempCtx.fillStyle = 'rgba(231, 76, 60, 0.2)';
+                tempCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Draw label
+                tempCtx.fillStyle = '#e74c3c';
+                tempCtx.font = '16px Arial';
+                tempCtx.fillText(ann.class, x1 + 5, y1 + 20);
+            });
+            
+            // Convert to data URL and download
+            const url = tempCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'annotated_image.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            showStatus("Annotated image downloaded", "success");
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusMessage.className = 'status-message';
+                statusMessage.textContent = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
